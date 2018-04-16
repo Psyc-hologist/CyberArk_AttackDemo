@@ -1,0 +1,167 @@
+SpiderLabs
+https://www.trustwave.com/Resources/SpiderLabs-Blog/Introducing-Responder-1-0/
+https://www.trustwave.com/Resources/SpiderLabs-Blog/Responder-2-0---Owning-Windows-Networks-part-3/
+
+Introducing Responder-1.0
+Responder is a multi threaded tool that answers to IPv4 LLMNR (Link-local Multicast Name Resolution) and Netbios Name Service (NBT-NS) queries.
+This tool includes: 
+- LLMNR poisoner.
+- NBT-NS poisoner.
+- Rogue SMB server with a NTLMv1/v2 hash graber.
+- Rogue HTTP server, with basic auth and NTLMv1/v2 hash graber.
+- Rogue SQL Windows auth server with a NTLMv1/v2 hash graber.
+
+What is LLMNR:
+
+LLMNR can be seen as a mix between NBT-NS and DNS. This protocol was introduced in Windows Vista, it is used to resolves single label names.
+The main differences are: 
+- LLMNR supports IPv6.
+- LLMNR is Multicast.
+LLMNR is used when DNS name resolution is unable to identify a host. If LLMNR fail, NBT-NS will be used as last resort if enabled.
+
+NetBIOS Name Service poisoner:
+
+Often wrongly refered as NBT-NS "spoofer" an NBT-NS poisoner will respond to broadcast NBT-NS queries.
+On Windows version lower than Vista, When DNS resolution fails, NBT-NS will be used as last resort if the requested name is smaller or equal to 15 characters. The 16th character is reserved for the NetBIOS Suffix.
+The purpose of this poisoner is to have a customizable NBT-NS answerer which only answer to a certain type of NBT-NS query.
+The concept is to use a white list of NBT-NS services (see http://support.microsoft.com/kb/163409), which allows us to target a NBT-NS attack.
+By default, we only answer to File Server NetBIOS name suffix. We are then able to limit the poisoning stricly to issued share requests like "\\ShareServer\testing\". This helps us to target an NBT-NS poisoning attack and therefore limit any collateral damage on the subnet.
+This tool can also answer to Workstation/Redirectors Service suffix queries if this option is set via command line.
+
+Tool functionalities:
+
+
+Once this tool is launched, it will join the IGMP group and listen on UDP 5355 port multicast.
+This tool will also listen on TCP port 139, 445, 1433, 80 and UDP port 137, if you have any service running on these ports, you will need to stop them prior launching this tool.
+The tool will write captured hashes to a file in the current folder for each poisoned host with the following syntax: [SMB/HTTP/SQL]-[NTLMv1/v2]-Client-IP.txt in a John Jumbo format.The SMB server supports Windows ranging from NT4 to Windows Server 2012 RC, Samba, Mac OsX Lion.
+
+Usage:
+
+Several options are available, those are :
+- d : Target Domain name. This option is optional, by default WORKGROUP will be used.
+- i : Our IP address. This option is mandatory, it is used to poison LLMNR and NBT-NS answers with our ip address.
+- r : If set to 1, Responder will answer to NBT-NS Workstation/Redirect queries. By default this option is set to false.
+- b : Use HTTP basic authentication, this is used to capture clear text password. By default this option is set to false (NTLM auth)
+- s : Turn HTTP server On/Off. By default the HTTP is enabled.
+
+Responder 2.0
+Introduction:
+
+The power and flexibility of Responder has grown significantly over the past year. Responder is a powerful and easy-to-use tool for penetration testers looking to highlight and exploit weaknesses in a number of popular default network configurations. In this post we will review the latest Responder changes, take a closer look at some new features and discuss some popular usage options and configurations. If this is your first encounter with Responder, we highly recommend that you start with some of our prior posts on the topic:
+
+http://blog.spiderlabs.com/2013/01/owning-windows-networks-with-responder-17.html
+
+http://blog.spiderlabs.com/2013/02/owning-windows-network-with-responder-part-2.html
+
+http://blog.spiderlabs.com/2013/11/spiderlabs-responder-updates.html
+
+New Functionalities in Responder :
+
+Fully functional proxy server:
+
+Highly effective for the WPAD Man-In-The-Middle (MITM) attack.
+
+Users may set a custom proxy auto-config (PAC) script in the Responder.conf file.
+
+Easy HTML injection in the server responses forwarded to clients using the Responder proxy.
+
+Forced NTLM authentication for wpad.dat file retrieval. This command line option is disabled by default and controlled via the "-F On" switch.
+
+SMBRelay module:
+
+This module works in conjunction with Responder to relay selected account credentials to target systems and run a user-defined command.
+
+Analyze Mode:
+
+A stealthy way to view LLMNR, NBT-NS and Browser requests without sending poisoned responses.
+
+Analyze mode is enabled by using the "-A" CLI switch.
+
+Detect whether you can use ICMP redirects on the subnet you're sitting on.
+
+Map domains and forests, SQL servers, workstations passively (Browser/Lanman).
+
+New authentication modules designed to capture additional clear text credentials:
+
+POP
+
+IMAP
+
+SMTP
+
+SQL
+
+Additional improvements:
+
+Responder output is now less verbose by default. Verbosity is easily increased to the previous level via the "-v" command line switch. Standard logging to the Responder-Session.log or user-defined file remains the same.
+
+Responder can be configured to listen on a specific network interface via the "-I" command line switch.
+
+Responder can be run from outside its root directory without the need for additional configuration.
+
+WPAD Proxy Server:
+
+The Web Proxy Auto-Discovery Protocol (WPAD) is used in Windows environments to automatically configure Internet Explorer proxy settings. This functionality is enabled by default on all Windows releases since Windows 2000.
+
+A workstation will periodically search for "wpad.<WindowDomainName>." If a location is not provided by a DHCP or DNS server, then Link Local Multicast Name Resolution (LLMNR) and NetBIOS Name Service (NBT-NS) queries are sent out on the local network segment. When Responder is active on a network, it will respond to these requests and send a specific wpad.dat file to the targeted browser:
+
+function FindProxyForURL(url, host)
+
+{
+
+if ((host == "localhost") || shExpMatch(host, "localhost.*") ||(host == "127.0.0.1") || isPlainHostName(host))
+
+return "DIRECT";
+
+if (dnsDomainIs(host, "RespProxySrv")||shExpMatch(host, "(*.RespProxySrv|RespProxySrv)"))
+
+return "DIRECT";
+
+return 'PROXY ISAProxySrv:3141; DIRECT';
+
+}
+
+
+This file instructs the workstation's browser as follows:
+
+If the request is for "localhost" or "127.0.0.1" or a plain hostname (e.g. "http://pre-prod/service.amx") connect directly to the host and do not use the Responder proxy.
+
+If the request is for *.RespProxySrv connect directly to the host.
+
+All other requests should use the Responder proxy located at ISAProxySrv:3141.
+
+Once the browser receives the specially crafted wpad.dat file, it will start using the Responder proxy server:
+
+All traffic to and from the targeted browser will start coming through the Responder proxy. Again, this is a default setting. Internet Explorer will use the Responder proxy server if WPAD has not been disabled.
+
+A command line switch "-F On" was added to provide the option to force NTLM authentication when a browser wants to retrieve the wpad.dat file. This option is disabled by default:
+
+As you can see in this screen shot, because the target's web traffic is now being routed through Responder we can use this opportunity to inject a custom HTML script transparently into the server response. By default our injected HTML should result in an attempt to retrieve an .ico file from the tester's system, resulting in a request for authentication. The HTML injected can be customized in the Responder.conf file:
+
+SMB Relay Module:
+
+Responder 2.0 now includes an SMB Relay standalone script: SMBRelay.py.
+
+The SMBRelay script is designed to work in conjunction with an active Responder session. SMBRelay.py will relay any authentication from a whitelisted selection of users to a targeted system. If successful, SMBRelay.py will attempt to execute a user-defined command on the target system. If the authentication fails, no further authentication from the victim will be forwarded to the target to minimize the possibility of account lockout. Using the script will require that we disable the built-in Responder SMB authentication module by setting "SMB = Off" under "[Responder Core]" in the Responder.conf file. By requiring a whitelist of users, we can focus on privileged accounts (e.g. Domain Administrators) and avoid a high number of relatively noisy authentication failures. This naturally requires identifying privileged accounts before using the SMBRelay script. Luckily there are a number of different tools available, such as nmap smb-enum-users and enum4linux, to assist with uncovering this information.
+
+This script does not support SMB Signing and targeting a Primary Domain Controller is not recommend as it will have the security mechanism enabled by default.
+
+In this example, we forwarded an NTLMv2 response for the 'Administrator' account to the target system and executed the supplied command. This results in the creation of a new local administrator user— Responder.
+
+Analyze Mode:
+
+While Responder was designed with a focus on stealth, Responder 2.0 has the potential to be the stealthiest version yet. Enable the new Analyze mode via the "-A" CLI switch combined with either the "-I" or "-i" CLI switches. Using Analyze mode, you can gather information about LLMNR, NBT-NS and Browser requests broadcast over the local network segment without offering a poisoned response or attempting to capture credentials.
+
+This new mode offers a number of advantages for penetration testers looking to maximize stealth and perform reconnaissance. Passively discovered systems can be selectively added to the target whitelist option within the Responder.conf configuration file. Broadcast and Multicast requests can provide insight into systems and technologies in use on the target network. Additionally, Analyze mode can be useful for administrators looking to better understand potentially vulnerable LLMNR and NBT-NS traffic on their network or to investigate if these issues have been successfully remediated.
+
+In this example, Analyze mode compares your IP address with the DNS server's IP address and lets you know whether you can launch ICMP Redirects on this subnet:
+
+Analyze Mode - Lanman Module:
+
+This new module allows you to passively map Domain controllers, SQL servers and workstations joined to a specific domain. In a Windows network, workstations make use of the Browser protocol in order to map workstations, domains, printers, etc. Workstations send several broadcast announcement periodically to make sure every other workstation can keep track of them. The complete list can be retrieved by sending a RAP NetServerEnum3 command with the server type field set to "\xff\xff\xff\xff". The server will then provide the complete list of known workstations sorted by features and functionalities. For more information on the Browser protocol, you can read this chapter of Implementing CIFS: http://ubiqx.org/cifs/Browsing.html
+
+Responder takes advantage of this functionality by listening on port UDP 138 for Browser broadcast announcements. Once Responder receives a specific announcement, it attempts to retrieve the complete list from the originating host.
+
+The latest version of Responder is available on the SpiderLabs public GitHub repository at https://github.com/SpiderLabs/Responder . Be sure to check the SpiderLabs blog for the latest news on Responder and follow the @PythonResponder twitter account for information on updates and pro-tips on using Responder.
+
+

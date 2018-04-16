@@ -1,0 +1,10 @@
+HAK5 Links:
+https://www.hak5.org/gear/bash-bunny
+https://forums.hak5.org/forum/92-bash-bunny/
+https://github.com/hak5/bashbunny-payloads
+https://www.hak5.org/gear/bash-bunny/docs       
+
+
+Misc Links:
+https://bunnytoolkit.com/
+https://labs.portcullis.co.uk/blog/introduction-to-bash-bunny/

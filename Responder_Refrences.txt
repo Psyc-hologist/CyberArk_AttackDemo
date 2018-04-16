@@ -1,0 +1,15 @@
+SpiderLabs Links:
+https://www.trustwave.com/Resources/SpiderLabs-Blog/Introducing-Responder-1-0/
+https://www.trustwave.com/Resources/SpiderLabs-Blog/Responder-2-0---Owning-Windows-Networks-part-3/
+https://github.com/SpiderLabs/
+https://github.com/SpiderLabs/Responder
+
+
+
+
+Misc Links:
+https://www.notsosecure.com/pwning-with-responder-a-pentesters-guide/
+https://www.4armed.com/blog/llmnr-nbtns-poisoning-using-responder/
+https://www.sternsecurity.com/blog/local-network-attacks-llmnr-and-nbt-ns-poisoning
+https://www.gracefulsecurity.com/stealing-accounts-llmnr-and-nbt-ns-poisoning/
+https://pentest.blog/what-is-llmnr-wpad-and-how-to-abuse-them-during-pentest/

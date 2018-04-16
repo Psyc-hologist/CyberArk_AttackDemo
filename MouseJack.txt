@@ -1,0 +1,104 @@
+MouseJack Technical Details
+Injecting Keystrokes into Wireless Mice 
+
+Abstract
+
+MouseJack is a collection of security vulnerabilities affecting non-Bluetooth wireless mice and keyboards. Spanning seven vendors, these vulnerabilities enable an attacker to type arbitrary commands into a victim’s computer from up to 100 meters away using a $15 USB dongle.
+
+Overview
+
+Wireless mice and keyboards commonly communicate using proprietary protocols operating in the 2.4GHz ISM band. In contrast to Bluetooth, there is no industry standard to follow, leaving each vendor to implement their own security scheme. 
+
+Wireless mice and keyboards work by transmitting radio frequency packets to a USB dongle plugged into a user’s computer. When a user presses a key on their keyboard or moves their mouse, information describing the actions are sent wirelessly to the USB dongle. 
+
+The dongle listens for radio frequency packets sent by the mouse or keyboard, and notifies the computer whenever the user moves their mouse or types on their keyboard.
+
+In order to prevent eavesdropping, most vendors encrypt the data being transmitted by wireless keyboards. The dongle knows the encryption key being used by the keyboard, so it is able to decrypt the data and see what key was pressed. Without knowing the encryption key, an attacker is unable to decrypt the data, so they are unable to see what is being typed.
+
+Conversely, none of the mice that were tested encrypt their wireless communications. This means that there is no authentication mechanism, and the dongle is unable to distinguish between packets transmitted by a mouse, and those transmitted by an attacker. As a result, an attacker is able to pretend to be a mouse and transmit their own movement/click packets to a dongle.
+
+Problems in the way the dongles process received packets make it possible for an attacker to transmit specially crafted packets which generate keypresses instead of mouse movement/clicks.
+
+Common Transceivers
+
+Nordic Semiconductor makes the popular nRF24L series of transceivers used in most of the devices vulnerable to MouseJack. The nRF24L transceivers provide a mechanism to wirelessly transmit data between two devices, but the functionality that turns mouse clicks and keypresses into bytes sent over the air is implemented by each vendor. From a research standpoint, this means that the same tools and procedures can be used to evaluate products from different vendors. 
+
+Software-Defined Radio Decoder
+
+The nRF24L transceivers support multiple data rates, address lengths, packet formats, and checksums. To accommodate this, the initial research was performed using a USRP B210 Software Defined Radio, coupled with a custom GNU Radio block designed to decode all of the possible packet configurations. This proved fruitful, but there were drawbacks to using an SDR.
+
+None of the tested devices employ frequency hopping in the traditional sense, but they all change channels to avoid interference from other 2.4GHz devices (Bluetooth, Wi-Fi, etc). The channel hopping is generally unpredictable, and Software Defined Radios are slower to retune than the nRF24L radios. This makes it difficult for an SDR based decoder to observe all of the transmitted packets.
+
+When a mouse transmits a movement packet to a dongle, the dongle replies with an acknowledgement packet telling the mouse that the movement packet was received. The mouse waits for a short period before determining that the packet it transmitted was lost, which can be as short as 250 microseconds. Due to USB latency and processing overhead, the SDR-based decoder is unable to transmit ACKs within the narrow timeout window, so two way communication between an SDR and dongle/mouse is not a viable option.
+
+Crazyradio PA Dongles
+
+The Crazyflie[3] is an open source drone which is controlled with an amplified nRF24L-based USB dongle called the Crazyradio PA[4]. This is equivalent to an amplified version of the USB dongles commonly used with wireless mice and keyboards. Modifying the Crazyradio PA firmware to include support for pseudo-promiscuous mode made it possible to distill the packet sniffing and injection functionality down to a minimal amount of Python code.
+
+Fuzzing
+
+The Crazyradio PA dongles made it possible to implement an efficient and effective fuzzer. Mouse and keyboard USB dongles communicate user actions to the operating system in the form of USB HID packets, which can be sniffed by enabling the usbmon kernel module on Linux. 
+
+The implemented fuzzer takes advantage of this by transmitting RF packets to a mouse/keyboard dongle attached to the same computer, and monitoring USB traffic for generated USB HID packets. Anytime mouse movement or keypresses are sent to the operating system, the recently transmitted RF packets are recorded for analysis. Fuzzing variants of observed packet formats and behaviors yielded the best results.
+
+Vulnerabilities
+
+Specifics of the discovered vulnerabilities vary from vendor to vendor, but they generally fall into one of three categories:
+
+1. Keystroke injection, spoofing a mouse
+
+When processing received RF packets, some dongles do not verify that the type of packet received matches the type of device that transmitted it. Under normal circumstances, a mouse will only transmit movement/clicks to the dongle, and a keyboard will only transmit keypresses. If the dongle does not verify that the packet type and transmitting device type match, it is possible for an attacker to pretend to be a mouse, but transmit a keypress packet. The dongle does not expect packets coming from a mouse to be encrypted, so it accepts the keypress packet, allowing the attacker to type arbitrary commands on the victim’s computer.
+
+2. Keystroke injection, spoofing a keyboard
+
+Most of the tested keyboards encrypt data before transmitting it wirelessly to the dongle, but not all of the dongles require that encryption is used. This makes it possible for an attacker to pretend to be a keyboard, and transmit unencrypted keyboard packets to the dongle. This bypasses the encryption normally used by the keyboard, and allows an attacker to type arbitrary commands on the victim’s computer.
+
+3. Forced pairing
+
+Before a wireless keyboard or mouse leaves the factory, it is paired with a dongle. This means that it knows the wireless address of the dongle, and in the case of a keyboard, the secret encryption key. 
+
+Some vendors include the ability to pair new devices with a dongle, or pair an existing keyboard or mouse with a new dongle. If a dongle is lost, for example, this means that the user only needs to purchase a new dongle, instead of an entirely new set. 
+
+To prevent unauthorized devices from pairing with a dongle, the dongle will only accept new devices when it has been placed into a special “pairing mode” by the user, which lasts for 30-60 seconds.
+
+It is possible to bypass this pairing mode on some dongles and pair a new device without any user interaction. In the case where a victim only has a mouse, but is using a dongle vulnerable to keystroke injection by spoofing a keyboard, an attacker can pair a fake keyboard with the dongle, and use it to type arbitrary commands on the victim’s computer.
+
+Anatomy of an Attack
+
+Carrying out a MouseJack attack does not require specialized or expensive equipment, and can be done with a $15 USB dongle. 
+
+First, the attacker identifies a target wireless mouse or keyboard by listening for RF packets transmitted when a user is moving/clicking the mouse or typing on the keyboard.
+
+If necessary, the attacker now force-pairs a fake keyboard with the victim's dongle.
+
+Finally, the attacker transmits keypress packets to type a series of commands into the victim’s computer. This can include downloading a virus or rootkit, transferring files off of the victim’s computer, or anything else the attacker could do if they were physically typing on the computer’s keyboard.
+
+Mitigation
+
+There are two basic types of nRF24L chips used by keyboards, mice, and dongles: one-time-programmable, and flash memory. One-time-programmable devices cannot be updated once they leave the factory, but flash memory devices can. 
+
+For non-updateable devices, which represent the majority of those tested, there is no mechanism to secure a vulnerable device short of unplugging the USB dongle from the computer. 
+
+For devices with updated firmware available from the manufacturer, it is recommended to install the update before continuing to use the affected mouse or keyboard.
+
+References
+
+[1] Goodspeed, Travis. (February 7, 2011). Promiscuity is the nRF24L01+'s Duty. Retrieved from http://travisgoodspeed.blogspot.com/2011/02/promiscuity-is-nrf24l01s-dut...
+
+[2] Newlin, Marc. (October 24, 2015). Hacking Wireless Mice with an NES Controller. Presented at ToorCon 17, San Diego, CA
+
+[3] Bitcraze AB. (2016). Crazyflie 2.0. Retrieved from https://www.bitcraze.io/crazyflie-2/
+
+[4] Bitcraze AB. (2016). Crazyradio PA. Retrieved from https://www.bitcraze.io/crazyradio-pa/
+
+Related Work
+
+- "KeyKeriki v2.0 – 2.4GHz", Thorsten Schröder & Max Moser, CanSecWest 2010.
+http://www.remote-exploit.org/articles/keykeriki_v2_0__8211_2_4ghz/
+https://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2010-1184
+ 
+- "Promiscuity is the nRF24L01+'s Duty", Travis Goodspeed, 2011.
+http://travisgoodspeed.blogspot.com/2011/02/promiscuity-is-nrf24l01s-duty.html
+ 
+- "KeySweeper", Samy Kamkar, 2015.
+http://samy.pl/keysweeper/

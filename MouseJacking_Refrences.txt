@@ -1,0 +1,17 @@
+MouseJacking Refrences:
+
+Bastille Research
+https://www.mousejack.com/
+https://github.com/BastilleResearch/mousejack
+
+MouseJack Affected Devices:
+https://www.bastille.net/research/vulnerabilities/mousejack/affected-devices/
+
+MouseJack Technical Details:
+https://www.bastille.net/research/vulnerabilities/mousejack/technical-details/
+
+InsecurityOfThings Research
+https://github.com/insecurityofthings/jackit
+
+ComputerWorl Article on MouseJacking:
+https://www.computerworld.com/article/3037377/security/mousejack-billions-of-wireless-keyboards-mice-vulnerable-to-15-hijack-attack.html

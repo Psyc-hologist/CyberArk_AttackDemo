@@ -1,0 +1,11 @@
+DigiSpark
+http://digistump.com/
+http://digistump.com/wiki/digispark/tutorials/connecting
+http://digistump.com/board/index.php
+
+
+Misc Links:
+https://github.com/CedArctic/DigiSpark-Scripts
+http://www.redteamr.com/2016/08/digiducky/
+https://www.pantomath.xyz/best-best-usb-rubber-ducky-digispark-scripts/
+https://www.vesiluoma.com/exploiting-with-badusb-meterpreter-digispark/

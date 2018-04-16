@@ -1,0 +1,10 @@
+SySS Research Links:
+https://www.syss.de/en/
+https://github.com/SySS-Research/Seth
+
+
+Misc Links:
+https://www.darknet.org.uk/2017/09/seth-rdp-man-in-the-middle-attack-tool/
+https://www.darknet.org.uk/2017/03/sessiongopher-session-extraction-tool/
+https://www.youtube.com/watch?v=-Tq0Y5vdf28
+https://securityonline.info/seth-mitm-attack-extract-clear-text-credentials-rdp-connections/
